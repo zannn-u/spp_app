@@ -1,5 +1,5 @@
 .list-group-item.active, .list-group-item:hover { background:#eff6ff; }
-.btn-primary { background:#ec2107; border-color:#181617; }
+.btn-primary { background:#0798ec; border-color:#0ee4d2; }
 
 @media print{
   nav, aside, .btn, form, .breadcrumb { display:none !important; }
