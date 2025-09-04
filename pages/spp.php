@@ -1,7 +1,12 @@
-<?php require_once __DIR__."/../core/role_only.php"; $title="SPP";
+<?php 
+// Batasi akses berdasarkan role
+require_once __DIR__."/../core/role_only.php"; 
+$title="SPP";
+
+// Koneksi database
 include __DIR__."/../config/koneksi.php";
 
-// DELETE (before output)
+// Hapus data SPP (DELETE)
 if (isset($_GET['hapus'])) {
     $id = intval($_GET['hapus']);
     mysqli_query($koneksi, "DELETE FROM spp WHERE id_spp='$id'");
@@ -9,9 +14,9 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
-// CREATE
+// Tambah data SPP (CREATE)
 if (isset($_POST['tambah'])) {
-    $tahun = $_POST['tahun'];
+    $tahun   = $_POST['tahun'];
     $nominal = $_POST['nominal'];
     $sql = "INSERT INTO spp (tahun,nominal) VALUES('$tahun','$nominal')";
     mysqli_query($koneksi, $sql);
@@ -20,14 +25,22 @@ if (isset($_POST['tambah'])) {
 }
 ?>
 
+<!-- Header halaman -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">Data SPP</h4>
-  <a href="#formTambahSpp" class="btn btn-primary btn-sm" onclick="document.getElementById('formTambahSpp').scrollIntoView();return false;"><i class="bi bi-plus-lg me-1"></i>Tambah SPP</a>
+  <a href="#formTambahSpp" 
+     class="btn btn-primary btn-sm" 
+     onclick="document.getElementById('formTambahSpp').scrollIntoView();return false;">
+    <i class="bi bi-plus-lg me-1"></i>Tambah SPP
+  </a>
 </div>
+
+<!-- Notifikasi sukses -->
 <?php if(isset($_GET['msg']) && $_GET['msg']==='hapus'): ?>
 <div class="alert alert-success py-2">Data terhapus.</div>
 <?php endif; ?>
 
+<!-- Form tambah data SPP -->
 <div class="card shadow-sm mb-3" id="formTambahSpp">
   <div class="card-body">
     <form method="post">
@@ -48,10 +61,18 @@ if (isset($_POST['tambah'])) {
   </div>
 </div>
 
+<!-- Tabel data SPP -->
 <div class="card shadow-sm">
   <div class="card-body">
     <table class="table table-striped datatable">
-      <thead><tr><th>ID</th><th>Tahun</th><th>Nominal</th><th width="90">Aksi</th></tr></thead>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tahun</th>
+          <th>Nominal</th>
+          <th width="90">Aksi</th>
+        </tr>
+      </thead>
       <tbody>
       <?php
       $q = mysqli_query($koneksi, "SELECT * FROM spp");
@@ -62,7 +83,11 @@ if (isset($_POST['tambah'])) {
           <td><?= htmlspecialchars($d['tahun']) ?></td>
           <td><?= htmlspecialchars($d['nominal']) ?></td>
           <td>
-            <a class="btn btn-sm btn-outline-danger" href="/spp_app/index.php?page=spp&hapus=<?= $d['id_spp'] ?>" onclick="return confirm('Hapus data ini?')"><i class="bi bi-trash"></i></a>
+            <a class="btn btn-sm btn-outline-danger" 
+               href="/spp_app/index.php?page=spp&hapus=<?= $d['id_spp'] ?>" 
+               onclick="return confirm('Hapus data ini?')">
+              <i class="bi bi-trash"></i>
+            </a>
           </td>
         </tr>
       <?php endwhile; ?>
