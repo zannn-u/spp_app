@@ -2,7 +2,7 @@
 // Bagian: Memulai sesi
 session_start();
 
-// Bagian: Cek autentikasi pengguna (hanya bisa diakses setelah login)
+// Bagian: Cek autentikasi pengguna (hanya petugas/admin)
 require "core/auth_check.php";
 
 // Bagian: Judul halaman

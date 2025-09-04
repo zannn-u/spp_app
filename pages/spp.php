@@ -23,6 +23,26 @@ if (isset($_POST['tambah'])) {
     header("Location: /spp_app/index.php?page=spp&msg=tambah");
     exit;
 }
+
+// ======================
+// PROSES AMBIL DATA EDIT
+// ======================
+if (isset($_GET['edit'])) {
+    $id = intval($_GET['edit']);
+    $data_edit = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT * FROM spp WHERE id_spp=$id"));
+}
+
+// ======================
+// PROSES UPDATE DATA
+// ======================
+if (isset($_POST['update'])) {
+    $id     = (int)$_POST['id_spp'];
+    $tahun  = $_POST['tahun'];
+    $nominal= $_POST['nominal'];
+    mysqli_query($koneksi, "UPDATE spp SET tahun='".mysqli_real_escape_string($koneksi,$tahun)."', nominal='".mysqli_real_escape_string($koneksi,$nominal)."' WHERE id_spp=$id");
+    header("Location: /spp_app/index.php?page=spp&msg=update");
+    exit;
+}
 ?>
 
 <!-- Header halaman -->
@@ -40,22 +60,30 @@ if (isset($_POST['tambah'])) {
 <div class="alert alert-success py-2">Data terhapus.</div>
 <?php endif; ?>
 
-<!-- Form tambah data SPP -->
+<!-- Form tambah / edit data SPP -->
 <div class="card shadow-sm mb-3" id="formTambahSpp">
   <div class="card-body">
     <form method="post">
+      <?php if(isset($data_edit)): ?>
+        <input type="hidden" name="id_spp" value="<?= $data_edit['id_spp'] ?>">
+      <?php endif; ?>
       <div class="row g-2">
         <div class="col-md-6">
           <label class="form-label">Tahun</label>
-          <input type="number" class="form-control" name="tahun" required>
+          <input type="number" class="form-control" name="tahun" value="<?= isset($data_edit)?htmlspecialchars($data_edit['tahun']):'' ?>" required>
         </div>
         <div class="col-md-6">
           <label class="form-label">Nominal</label>
-          <input type="number" class="form-control" name="nominal" required>
+          <input type="number" class="form-control" name="nominal" value="<?= isset($data_edit)?htmlspecialchars($data_edit['nominal']):'' ?>" required>
         </div>
       </div>
       <div class="mt-3">
-        <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
+        <?php if(isset($data_edit)): ?>
+          <button type="submit" name="update" class="btn btn-primary">Update</button>
+          <a class="btn btn-outline-secondary" href="/spp_app/index.php?page=spp">Batal</a>
+        <?php else: ?>
+          <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
+        <?php endif; ?>
       </div>
     </form>
   </div>
@@ -70,7 +98,7 @@ if (isset($_POST['tambah'])) {
           <th>ID</th>
           <th>Tahun</th>
           <th>Nominal</th>
-          <th width="90">Aksi</th>
+          <th width="120">Aksi</th>
         </tr>
       </thead>
       <tbody>
@@ -83,6 +111,10 @@ if (isset($_POST['tambah'])) {
           <td><?= htmlspecialchars($d['tahun']) ?></td>
           <td><?= htmlspecialchars($d['nominal']) ?></td>
           <td>
+            <a class="btn btn-sm btn-outline-primary" 
+               href="/spp_app/index.php?page=spp&edit=<?= $d['id_spp'] ?>">
+              <i class="bi bi-pencil"></i>
+            </a>
             <a class="btn btn-sm btn-outline-danger" 
                href="/spp_app/index.php?page=spp&hapus=<?= $d['id_spp'] ?>" 
                onclick="return confirm('Hapus data ini?')">

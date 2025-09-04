@@ -22,14 +22,34 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
+// ======================
+// PROSES AMBIL DATA EDIT
+// ======================
+if (isset($_GET['edit'])) {
+    $id = intval($_GET['edit']);
+    $data_edit = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT * FROM kelas WHERE id_kelas=$id"));
+}
+
+// ======================
+// PROSES UPDATE DATA
+// ======================
+if (isset($_POST['update'])) {
+    $id = (int)$_POST['id_kelas'];
+    $nama_kelas = $_POST['nama_kelas'];
+    $kompetensi = $_POST['kompetensi_keahlian'];
+    mysqli_query($koneksi, "UPDATE kelas SET nama_kelas='".mysqli_real_escape_string($koneksi,$nama_kelas)."', kompetensi_keahlian='".mysqli_real_escape_string($koneksi,$kompetensi)."' WHERE id_kelas=$id");
+    header("Location: /spp_app/index.php?page=kelas&msg=update");
+    exit;
+}
+
 
 // ======================
 // PROSES CREATE DATA
 // ======================
 // Mengecek apakah ada submit form 'tambah'
 if (isset($_POST['tambah'])) {
-    $nama_kelas = $_POST['nama_kelas'];
-    $kompetensi = $_POST['kompetensi_keahlian'];
+    $nama_kelas = mysqli_real_escape_string($koneksi, $_POST['nama_kelas']);
+    $kompetensi = mysqli_real_escape_string($koneksi, $_POST['kompetensi_keahlian']);
     
     // Query tambah data kelas baru
     $sql = "INSERT INTO kelas (nama_kelas,kompetensi_keahlian) VALUES('$nama_kelas','$kompetensi')";
@@ -62,26 +82,34 @@ if (isset($_POST['tambah'])) {
 
 
 <!-- ======================
- FORM TAMBAH DATA KELAS
+ FORM EDIT / TAMBAH DATA KELAS
 ====================== -->
 <div class="card shadow-sm mb-3" id="formTambahKelas">
   <div class="card-body">
     <form method="post">
+      <?php if(isset($data_edit)): ?>
+        <input type="hidden" name="id_kelas" value="<?= $data_edit['id_kelas'] ?>">
+      <?php endif; ?>
       <div class="row g-2">
         <!-- Input Nama Kelas -->
         <div class="col-md-6">
           <label class="form-label">Nama Kelas</label>
-          <input type="text" class="form-control" name="nama_kelas" required>
+          <input type="text" class="form-control" name="nama_kelas" value="<?= isset($data_edit)?htmlspecialchars($data_edit['nama_kelas']):'' ?>" required>
         </div>
         <!-- Input Kompetensi -->
         <div class="col-md-6">
           <label class="form-label">Kompetensi</label>
-          <input type="text" class="form-control" name="kompetensi_keahlian" required>
+          <input type="text" class="form-control" name="kompetensi_keahlian" value="<?= isset($data_edit)?htmlspecialchars($data_edit['kompetensi_keahlian']):'' ?>" required>
         </div>
       </div>
       <div class="mt-3">
-        <!-- Tombol Submit Tambah -->
-        <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
+        <!-- Tombol Submit Tambah/Update -->
+        <?php if(isset($data_edit)): ?>
+          <button type="submit" name="update" class="btn btn-primary">Update</button>
+          <a class="btn btn-outline-secondary" href="/spp_app/index.php?page=kelas">Batal</a>
+        <?php else: ?>
+          <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
+        <?php endif; ?>
       </div>
     </form>
   </div>

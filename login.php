@@ -40,8 +40,12 @@
           </form>
 
           <!-- Bagian: Link Register -->
-          <div class="text-center mt-3">
+          <div class="text-center mt-3 d-flex justify-content-between">
             <a href="register.php" class="small">Buat akun petugas</a>
+            <span class="text-secondary small">|</span>
+            <a href="userlogin.php" class="small">Login siswa</a>
+            <span class="text-secondary small">/</span>
+            <a href="userregist.php" class="small">Register siswa</a>
           </div>
         </div>
       </div>

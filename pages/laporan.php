@@ -1,4 +1,6 @@
 <?php 
+// Batasi akses hanya admin
+require_once __DIR__."/../core/role_only.php"; 
 // Judul halaman
 $title="Laporan Pembayaran"; 
 
