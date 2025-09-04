@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 28, 2025 at 05:42 PM
+-- Generation Time: Sep 04, 2025 at 12:58 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -69,7 +69,8 @@ INSERT INTO `pembayaran` (`id_pembayaran`, `id_petugas`, `nisn`, `tgl_bayar`, `b
 (10, 3, '1234567892', '2025-08-10', 'Agustus', '2025', 1, 500000),
 (11, 4, '1234567890', '2025-09-02', 'Septembe', '2025', 1, 500000),
 (12, 3, '1234567891', '2025-09-03', 'Septembe', '2025', 2, 600000),
-(14, 8, '1234567893', '2025-08-28', 'Agustus', '2025', 3, 100000);
+(14, 8, '1234567893', '2025-08-28', 'Agustus', '2025', 3, 100000),
+(15, 9, '1234567899', '2025-09-12', 'Oktober', '2025', 3, 150000);
 
 -- --------------------------------------------------------
 
@@ -96,7 +97,8 @@ INSERT INTO `petugas` (`id_petugas`, `username`, `password`, `nama_petugas`, `le
 (5, 'admin', '$2y$10$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36pY4A6d6mYjFJ9XcM6UfOa', 'Administrator', 'admin', 0),
 (6, 'admin', '$2y$10$hDYAsVfBeHsLapqHZQjDvuVs6YUsvSwMc3lYhdyhy7SidnzbFKs5y', 'Administrator', 'admin', 0),
 (7, 'ojantzyy', '$2y$10$ajBaIYkl7eKYExDuunx42.nNTlobMHEUdF.yciCiNR9LLHempHfoG', 'oojan', 'admin', 0),
-(8, 'zannn', '$2y$10$g8L.eOapcs2EfVUFGwOPHu7Args0ukl.NQ7GfBhe4AKePNkizSd0.', 'OJAN', 'admin', 1);
+(8, 'zannn', '$2y$10$g8L.eOapcs2EfVUFGwOPHu7Args0ukl.NQ7GfBhe4AKePNkizSd0.', 'OJAN', 'admin', 1),
+(9, 'saya', '$2y$10$jQLcpTnplLz86kWX8AlcnOMoajTea5LJEeaSRRhTIZYt1s6kcAX1y', 'Ligma', 'petugas', 1);
 
 -- --------------------------------------------------------
 
@@ -111,18 +113,20 @@ CREATE TABLE `siswa` (
   `id_kelas` int(11) DEFAULT NULL,
   `alamat` text DEFAULT NULL,
   `no_telp` varchar(13) DEFAULT NULL,
-  `id_spp` int(11) DEFAULT NULL
+  `id_spp` int(11) DEFAULT NULL,
+  `password` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `siswa`
 --
 
-INSERT INTO `siswa` (`nisn`, `nis`, `nama`, `id_kelas`, `alamat`, `no_telp`, `id_spp`) VALUES
-('1234567890', '20240001', 'Fauzan Al Bani', 1, 'Jl. Pondok Cabe No. 1', '081234567890', 1),
-('1234567891', '20240002', 'Siti Aminah', 2, 'Jl. Merpati No. 2', '081234567891', 2),
-('1234567892', '20240003', 'Budi Santoso', 3, 'Jl. Anggrek No. 3', '081234567892', 1),
-('1234567893', '20240004', 'ojane', 1, 'Jl. Ngawi No. 2', '089587646758', 2);
+INSERT INTO `siswa` (`nisn`, `nis`, `nama`, `id_kelas`, `alamat`, `no_telp`, `id_spp`, `password`) VALUES
+('1234567890', '20240001', 'Fauzan Al Bani', 1, 'Jl. Pondok Cabe No. 1', '081234567890', 1, ''),
+('1234567891', '20240002', 'Siti Aminah', 2, 'Jl. Merpati No. 2', '081234567891', 2, ''),
+('1234567892', '20240003', 'Budi Santoso', 3, 'Jl. Anggrek No. 3', '081234567892', 1, ''),
+('1234567893', '20240004', 'ojane', 1, 'Jl. Ngawi No. 2', '089587646758', 2, ''),
+('1234567899', '45435437', 'sigma', 2, 'Jl. Ngawi No. 4', '089587646750', 3, '');
 
 -- --------------------------------------------------------
 
@@ -198,13 +202,13 @@ ALTER TABLE `kelas`
 -- AUTO_INCREMENT for table `pembayaran`
 --
 ALTER TABLE `pembayaran`
-  MODIFY `id_pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id_pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `petugas`
 --
 ALTER TABLE `petugas`
-  MODIFY `id_petugas` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id_petugas` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `spp`
