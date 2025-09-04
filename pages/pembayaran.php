@@ -1,6 +1,6 @@
 <?php 
-// Batasi akses hanya untuk role tertentu
-require_once __DIR__."/../core/role_only.php"; 
+// Batasi akses admin/petugas
+require_once __DIR__."/../core/role_admin_or_petugas.php"; 
 
 // Judul halaman
 $title="Pembayaran";
@@ -37,10 +37,10 @@ if (isset($_GET['edit'])) {
 // ======================
 if (isset($_POST['tambah'])) {
     $id_petugas = (int)$_POST['id_petugas'];
-    $nisn       = $_POST['nisn'];
-    $tgl_bayar  = $_POST['tgl_bayar'];
-    $bulan      = $_POST['bulan'];
-    $tahun      = $_POST['tahun'];
+    $nisn       = mysqli_real_escape_string($koneksi, $_POST['nisn']);
+    $tgl_bayar  = mysqli_real_escape_string($koneksi, $_POST['tgl_bayar']);
+    $bulan      = mysqli_real_escape_string($koneksi, $_POST['bulan']);
+    $tahun      = mysqli_real_escape_string($koneksi, $_POST['tahun']);
     $id_spp     = (int)$_POST['id_spp'];
     $jumlah     = (int)$_POST['jumlah'];
 
@@ -64,7 +64,7 @@ if (isset($_POST['tambah'])) {
 
     // Simpan data pembayaran
     $sql = "INSERT INTO pembayaran (id_petugas, nisn, tgl_bayar, bulan_dibayar, tahun_dibayar, id_spp, jumlah_bayar) 
-            VALUES ('$id_petugas','".mysqli_real_escape_string($koneksi,$nisn)."','$tgl_bayar','$bulan','$tahun','$id_spp','$jumlah')";
+            VALUES ('$id_petugas','$nisn','$tgl_bayar','$bulan','$tahun','$id_spp','$jumlah')";
     if (mysqli_query($koneksi, $sql)) {
         header("Location: /spp_app/index.php?page=pembayaran&msg=tambah");
         exit;

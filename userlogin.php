@@ -1,12 +1,11 @@
-<?php session_start(); if(isset($_SESSION['id_petugas'])) { header("Location: index.php"); exit; } ?> 
+<?php session_start(); if(isset($_SESSION['siswa_nisn'])) { header("Location: userindex.php"); exit; } ?>
 
 <!doctype html>
 <html lang="id">
 <head>
-  <!-- Bagian: Meta dan Bootstrap -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login - SPP</title>
+  <title>Login Siswa - SPP</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light d-flex align-items-center" style="min-height:100vh">
@@ -14,34 +13,30 @@
 <div class="container">
   <div class="row justify-content-center">
     <div class="col-md-4">
-      <!-- Bagian: Card Login -->
       <div class="card shadow-sm">
         <div class="card-body p-4">
-          <h5 class="mb-3 text-center">Login Aplikasi SPP</h5>
+          <h5 class="mb-3 text-center">Login Siswa</h5>
 
-          <!-- Bagian: Tampilkan pesan error (jika ada) -->
-          <?php if(isset($_SESSION['error'])): ?>
+          <?php if(isset($_SESSION['error_user'])): ?>
             <div class="alert alert-danger py-2">
-              <?= $_SESSION['error']; unset($_SESSION['error']); ?>
+              <?= $_SESSION['error_user']; unset($_SESSION['error_user']); ?>
             </div>
           <?php endif; ?>
 
-          <!-- Bagian: Form Login -->
           <form method="post" action="proses_login.php">
             <div class="mb-3">
-              <label class="form-label">Username</label>
-              <input class="form-control" name="username" required>
+              <label class="form-label">NISN</label>
+              <input class="form-control" name="nisn" required>
             </div>
             <div class="mb-3">
               <label class="form-label">Password</label>
               <input type="password" class="form-control" name="password" required>
             </div>
-            <button class="btn btn-primary w-100" name="login">Login</button>
+            <button class="btn btn-primary w-100" name="login_user">Login</button>
           </form>
 
-          <!-- Bagian: Link Register -->
           <div class="text-center mt-3">
-            <a href="register.php" class="small">Buat akun petugas</a>
+            <a href="userregist.php" class="small">Buat akun siswa</a>
           </div>
         </div>
       </div>
@@ -51,3 +46,4 @@
 
 </body>
 </html>
+

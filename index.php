@@ -2,8 +2,11 @@
 // Bagian: Memulai sesi
 session_start();
 
-// Bagian: Cek autentikasi pengguna (hanya bisa diakses setelah login)
-require "core/auth_check.php";
+// Jika belum login sebagai petugas/admin → arahkan ke halaman pilihan login
+if (!isset($_SESSION['id_petugas'])) {
+  header("Location: welcome.php");
+  exit;
+}
 
 // Bagian: Judul halaman
 $title = "Dashboard";

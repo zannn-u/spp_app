@@ -28,8 +28,8 @@ if (isset($_GET['hapus'])) {
 // ======================
 // Mengecek apakah ada submit form 'tambah'
 if (isset($_POST['tambah'])) {
-    $nama_kelas = $_POST['nama_kelas'];
-    $kompetensi = $_POST['kompetensi_keahlian'];
+    $nama_kelas = mysqli_real_escape_string($koneksi, $_POST['nama_kelas']);
+    $kompetensi = mysqli_real_escape_string($koneksi, $_POST['kompetensi_keahlian']);
     
     // Query tambah data kelas baru
     $sql = "INSERT INTO kelas (nama_kelas,kompetensi_keahlian) VALUES('$nama_kelas','$kompetensi')";

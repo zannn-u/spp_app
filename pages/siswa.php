@@ -16,12 +16,12 @@ if (isset($_GET['hapus'])) {
 
 // Tambah data siswa (CREATE)
 if(isset($_POST['tambah'])) {
-    $nisn     = $_POST['nisn'];
-    $nis      = $_POST['nis'];
-    $nama     = $_POST['nama'];
+    $nisn     = mysqli_real_escape_string($koneksi, $_POST['nisn']);
+    $nis      = mysqli_real_escape_string($koneksi, $_POST['nis']);
+    $nama     = mysqli_real_escape_string($koneksi, $_POST['nama']);
     $id_kelas = (int)$_POST['id_kelas'];
-    $alamat   = $_POST['alamat'];
-    $no_telp  = $_POST['no_telp'];
+    $alamat   = mysqli_real_escape_string($koneksi, $_POST['alamat']);
+    $no_telp  = mysqli_real_escape_string($koneksi, $_POST['no_telp']);
     $id_spp   = (int)$_POST['id_spp'];
 
     // Validasi foreign key kelas & spp
