@@ -12,9 +12,13 @@ if (isset($_POST['login'])) {
   $u = $_POST['username'] ?? '';
   $p = $_POST['password'] ?? '';
 
-  // Bagian: Cari user berdasarkan username
-  $q = mysqli_query($koneksi, "SELECT * FROM petugas WHERE username='$u'");
-  $d = mysqli_fetch_assoc($q);
+  // Bagian: Cari user berdasarkan username (prepared) & hanya aktif=1
+  $stmt = mysqli_prepare($koneksi, "SELECT id_petugas, username, password, nama_petugas, level FROM petugas WHERE username=? AND aktif=1");
+  mysqli_stmt_bind_param($stmt, 's', $u);
+  mysqli_stmt_execute($stmt);
+  $res = mysqli_stmt_get_result($stmt);
+  $d = mysqli_fetch_assoc($res);
+  mysqli_stmt_close($stmt);
 
   // Bagian: Validasi user & password
   if ($d && password_verify($p, $d['password'])) {
@@ -49,8 +53,12 @@ if (isset($_POST['login_user'])) {
     password VARCHAR(255) NOT NULL
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
 
-  $q = mysqli_query($koneksi, "SELECT * FROM akun_siswa WHERE nisn='".mysqli_real_escape_string($koneksi,$nisn)."'");
-  $d = mysqli_fetch_assoc($q);
+  $stmt2 = mysqli_prepare($koneksi, "SELECT nisn, nama, password FROM akun_siswa WHERE nisn=?");
+  mysqli_stmt_bind_param($stmt2, 's', $nisn);
+  mysqli_stmt_execute($stmt2);
+  $res2 = mysqli_stmt_get_result($stmt2);
+  $d = mysqli_fetch_assoc($res2);
+  mysqli_stmt_close($stmt2);
 
   if ($d && password_verify($pwd, $d['password'])) {
     $_SESSION['siswa_nisn'] = $d['nisn'];

@@ -236,6 +236,68 @@ ALTER TABLE `siswa`
   ADD CONSTRAINT `siswa_ibfk_2` FOREIGN KEY (`id_spp`) REFERENCES `spp` (`id_spp`);
 COMMIT;
 
+-- ========================================================
+-- Tambahan: Constraint unik, audit, trigger, function, procedure
+-- ========================================================
+
+-- Pastikan tabel audit
+CREATE TABLE IF NOT EXISTS `audit_pembayaran` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `id_pembayaran` INT(11) NOT NULL,
+  `nisn` CHAR(10) NOT NULL,
+  `bulan_dibayar` VARCHAR(8) NOT NULL,
+  `tahun_dibayar` VARCHAR(4) NOT NULL,
+  `jumlah_bayar` INT(11) NOT NULL,
+  `dibuat_oleh` INT(11) NOT NULL,
+  `dibuat_pada` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Cegah duplikasi pembayaran per NISN-bulan-tahun
+ALTER TABLE `pembayaran`
+  ADD UNIQUE KEY `uniq_nisn_bulan_tahun` (`nisn`,`bulan_dibayar`,`tahun_dibayar`);
+
+-- Trigger audit setelah insert pembayaran (tanpa BEGIN/END)
+DROP TRIGGER IF EXISTS `trg_pembayaran_after_insert`;
+CREATE TRIGGER `trg_pembayaran_after_insert`
+AFTER INSERT ON `pembayaran`
+FOR EACH ROW
+INSERT INTO audit_pembayaran (id_pembayaran, nisn, bulan_dibayar, tahun_dibayar, jumlah_bayar, dibuat_oleh)
+VALUES (NEW.id_pembayaran, NEW.nisn, NEW.bulan_dibayar, NEW.tahun_dibayar, NEW.jumlah_bayar, NEW.id_petugas);
+
+-- Function total bayar per NISN dan tahun
+DELIMITER $$
+DROP FUNCTION IF EXISTS `fn_total_bayar` $$
+CREATE FUNCTION `fn_total_bayar`(p_nisn CHAR(10), p_tahun VARCHAR(4))
+RETURNS INT
+DETERMINISTIC
+BEGIN
+  DECLARE v_total INT DEFAULT 0;
+  SELECT COALESCE(SUM(jumlah_bayar),0) INTO v_total
+  FROM pembayaran
+  WHERE nisn = p_nisn AND tahun_dibayar = p_tahun;
+  RETURN v_total;
+END $$
+
+-- Stored Procedure tambah pembayaran (akan gagal jika unique constraint terlanggar)
+DROP PROCEDURE IF EXISTS `sp_tambah_pembayaran` $$
+CREATE PROCEDURE `sp_tambah_pembayaran`(
+  IN p_id_petugas INT,
+  IN p_nisn CHAR(10),
+  IN p_tgl_bayar DATE,
+  IN p_bulan VARCHAR(8),
+  IN p_tahun VARCHAR(4),
+  IN p_id_spp INT,
+  IN p_jumlah INT
+)
+BEGIN
+  START TRANSACTION;
+  INSERT INTO pembayaran (id_petugas, nisn, tgl_bayar, bulan_dibayar, tahun_dibayar, id_spp, jumlah_bayar)
+  VALUES (p_id_petugas, p_nisn, p_tgl_bayar, p_bulan, p_tahun, p_id_spp, p_jumlah);
+  COMMIT;
+END $$
+DELIMITER ;
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
