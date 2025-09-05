@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 04, 2025 at 12:58 PM
+-- Generation Time: Sep 05, 2025 at 05:04 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -70,7 +70,8 @@ INSERT INTO `pembayaran` (`id_pembayaran`, `id_petugas`, `nisn`, `tgl_bayar`, `b
 (11, 4, '1234567890', '2025-09-02', 'Septembe', '2025', 1, 500000),
 (12, 3, '1234567891', '2025-09-03', 'Septembe', '2025', 2, 600000),
 (14, 8, '1234567893', '2025-08-28', 'Agustus', '2025', 3, 100000),
-(15, 9, '1234567899', '2025-09-12', 'Oktober', '2025', 3, 150000);
+(15, 9, '1234567899', '2025-09-12', 'Oktober', '2025', 3, 150000),
+(16, 8, '1234567899', '2025-09-05', 'Septembe', '2025', 3, 90000);
 
 -- --------------------------------------------------------
 
@@ -202,7 +203,7 @@ ALTER TABLE `kelas`
 -- AUTO_INCREMENT for table `pembayaran`
 --
 ALTER TABLE `pembayaran`
-  MODIFY `id_pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id_pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `petugas`
@@ -235,68 +236,6 @@ ALTER TABLE `siswa`
   ADD CONSTRAINT `siswa_ibfk_1` FOREIGN KEY (`id_kelas`) REFERENCES `kelas` (`id_kelas`),
   ADD CONSTRAINT `siswa_ibfk_2` FOREIGN KEY (`id_spp`) REFERENCES `spp` (`id_spp`);
 COMMIT;
-
--- ========================================================
--- Tambahan: Constraint unik, audit, trigger, function, procedure
--- ========================================================
-
--- Pastikan tabel audit
-CREATE TABLE IF NOT EXISTS `audit_pembayaran` (
-  `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `id_pembayaran` INT(11) NOT NULL,
-  `nisn` CHAR(10) NOT NULL,
-  `bulan_dibayar` VARCHAR(8) NOT NULL,
-  `tahun_dibayar` VARCHAR(4) NOT NULL,
-  `jumlah_bayar` INT(11) NOT NULL,
-  `dibuat_oleh` INT(11) NOT NULL,
-  `dibuat_pada` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Cegah duplikasi pembayaran per NISN-bulan-tahun
-ALTER TABLE `pembayaran`
-  ADD UNIQUE KEY `uniq_nisn_bulan_tahun` (`nisn`,`bulan_dibayar`,`tahun_dibayar`);
-
--- Trigger audit setelah insert pembayaran (tanpa BEGIN/END)
-DROP TRIGGER IF EXISTS `trg_pembayaran_after_insert`;
-CREATE TRIGGER `trg_pembayaran_after_insert`
-AFTER INSERT ON `pembayaran`
-FOR EACH ROW
-INSERT INTO audit_pembayaran (id_pembayaran, nisn, bulan_dibayar, tahun_dibayar, jumlah_bayar, dibuat_oleh)
-VALUES (NEW.id_pembayaran, NEW.nisn, NEW.bulan_dibayar, NEW.tahun_dibayar, NEW.jumlah_bayar, NEW.id_petugas);
-
--- Function total bayar per NISN dan tahun
-DELIMITER $$
-DROP FUNCTION IF EXISTS `fn_total_bayar` $$
-CREATE FUNCTION `fn_total_bayar`(p_nisn CHAR(10), p_tahun VARCHAR(4))
-RETURNS INT
-DETERMINISTIC
-BEGIN
-  DECLARE v_total INT DEFAULT 0;
-  SELECT COALESCE(SUM(jumlah_bayar),0) INTO v_total
-  FROM pembayaran
-  WHERE nisn = p_nisn AND tahun_dibayar = p_tahun;
-  RETURN v_total;
-END $$
-
--- Stored Procedure tambah pembayaran (akan gagal jika unique constraint terlanggar)
-DROP PROCEDURE IF EXISTS `sp_tambah_pembayaran` $$
-CREATE PROCEDURE `sp_tambah_pembayaran`(
-  IN p_id_petugas INT,
-  IN p_nisn CHAR(10),
-  IN p_tgl_bayar DATE,
-  IN p_bulan VARCHAR(8),
-  IN p_tahun VARCHAR(4),
-  IN p_id_spp INT,
-  IN p_jumlah INT
-)
-BEGIN
-  START TRANSACTION;
-  INSERT INTO pembayaran (id_petugas, nisn, tgl_bayar, bulan_dibayar, tahun_dibayar, id_spp, jumlah_bayar)
-  VALUES (p_id_petugas, p_nisn, p_tgl_bayar, p_bulan, p_tahun, p_id_spp, p_jumlah);
-  COMMIT;
-END $$
-DELIMITER ;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
