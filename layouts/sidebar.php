@@ -11,20 +11,22 @@
           <i class="bi bi-speedometer2 me-2"></i>Dashboard
         </a>
 
-        <!-- Menu: Siswa -->
+        <?php if(($_SESSION['level'] ?? '') === 'admin'): ?>
+        <!-- Menu: Siswa (khusus admin) -->
         <a class="list-group-item list-group-item-action" href="index.php?page=siswa">
           <i class="bi bi-people me-2"></i>Siswa
         </a>
 
-        <!-- Menu: Kelas -->
+        <!-- Menu: Kelas (khusus admin) -->
         <a class="list-group-item list-group-item-action" href="index.php?page=kelas">
           <i class="bi bi-building me-2"></i>Kelas
         </a>
 
-        <!-- Menu: SPP -->
+        <!-- Menu: SPP (khusus admin) -->
         <a class="list-group-item list-group-item-action" href="index.php?page=spp">
           <i class="bi bi-wallet2 me-2"></i>SPP
         </a>
+        <?php endif; ?>
 
         <!-- Menu: Pembayaran -->
         <a class="list-group-item list-group-item-action" href="index.php?page=pembayaran">
@@ -38,10 +40,12 @@
           </a>
         <?php endif; ?>
 
-        <!-- Menu: Laporan -->
+        <?php if(($_SESSION['level'] ?? '') === 'admin'): ?>
+        <!-- Menu: Laporan (khusus admin) -->
         <a class="list-group-item list-group-item-action" href="index.php?page=laporan">
           <i class="bi bi-file-earmark-text me-2"></i>Laporan
         </a>
+        <?php endif; ?>
 
       </div>
     </aside>

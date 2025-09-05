@@ -14,6 +14,12 @@ if (isset($_GET['hapus'])) {
     exit;
 }
 
+// Ambil data untuk edit
+if (isset($_GET['edit'])) {
+    $nisn_edit = mysqli_real_escape_string($koneksi, $_GET['edit']);
+    $data_edit = mysqli_fetch_assoc(mysqli_query($koneksi, "SELECT * FROM siswa WHERE nisn='$nisn_edit'"));
+}
+
 // Tambah data siswa (CREATE)
 if(isset($_POST['tambah'])) {
     $nisn     = mysqli_real_escape_string($koneksi, $_POST['nisn']);
@@ -49,6 +55,38 @@ if(isset($_POST['tambah'])) {
         exit;
     }
 }
+
+// Update data siswa (UPDATE)
+if(isset($_POST['update'])) {
+    $nisn_key = mysqli_real_escape_string($koneksi, $_POST['nisn_key']);
+    $nis      = mysqli_real_escape_string($koneksi, $_POST['nis']);
+    $nama     = mysqli_real_escape_string($koneksi, $_POST['nama']);
+    $id_kelas = (int)$_POST['id_kelas'];
+    $alamat   = mysqli_real_escape_string($koneksi, $_POST['alamat']);
+    $no_telp  = mysqli_real_escape_string($koneksi, $_POST['no_telp']);
+    $id_spp   = (int)$_POST['id_spp'];
+
+    $kelasExists = mysqli_fetch_row(mysqli_query($koneksi, "SELECT COUNT(1) FROM kelas WHERE id_kelas=$id_kelas"))[0] ?? 0;
+    $sppExists   = mysqli_fetch_row(mysqli_query($koneksi, "SELECT COUNT(1) FROM spp WHERE id_spp=$id_spp"))[0] ?? 0;
+    if (!$kelasExists) {
+        header("Location: /spp_app/index.php?page=siswa&error=".rawurlencode('Kelas tidak ditemukan'));
+        exit;
+    }
+    if (!$sppExists) {
+        header("Location: /spp_app/index.php?page=siswa&error=".rawurlencode('SPP tidak ditemukan'));
+        exit;
+    }
+
+    $sql = "UPDATE siswa SET nis='$nis', nama='$nama', id_kelas='$id_kelas', alamat='$alamat', no_telp='$no_telp', id_spp='$id_spp' WHERE nisn='$nisn_key'";
+    if (mysqli_query($koneksi, $sql)) {
+        header("Location: /spp_app/index.php?page=siswa&msg=update");
+        exit;
+    } else {
+        $err = rawurlencode(mysqli_error($koneksi));
+        header("Location: /spp_app/index.php?page=siswa&error=$err");
+        exit;
+    }
+}
 ?>
 
 <!-- Header halaman -->
@@ -67,7 +105,61 @@ if(isset($_POST['tambah'])) {
 <div class="alert alert-danger py-2">Gagal menambah: <?= htmlspecialchars($_GET['error']) ?></div>
 <?php endif; ?>
 
-<!-- Form tambah siswa -->
+<?php if(isset($_GET['edit'])) { ?>
+<div class="card shadow-sm mb-3" id="formEditSiswa">
+  <div class="card-body">
+    <form method="post">
+      <input type="hidden" name="nisn_key" value="<?= htmlspecialchars($data_edit['nisn']) ?>">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <label class="form-label">NISN</label>
+          <input type="text" class="form-control" value="<?= htmlspecialchars($data_edit['nisn']) ?>" disabled>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">NIS</label>
+          <input type="text" class="form-control" name="nis" value="<?= htmlspecialchars($data_edit['nis']) ?>" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Nama</label>
+          <input type="text" class="form-control" name="nama" value="<?= htmlspecialchars($data_edit['nama']) ?>" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Kelas</label>
+          <select class="form-select" name="id_kelas" required>
+            <?php 
+            $kelas = mysqli_query($koneksi, "SELECT id_kelas, nama_kelas FROM kelas ORDER BY nama_kelas"); 
+            while($k = mysqli_fetch_assoc($kelas)): ?>
+              <option value="<?= $k['id_kelas'] ?>" <?= ($data_edit['id_kelas']==$k['id_kelas'])?'selected':''; ?>><?= htmlspecialchars($k['nama_kelas']) ?></option>
+            <?php endwhile; ?>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Alamat</label>
+          <input type="text" class="form-control" name="alamat" value="<?= htmlspecialchars($data_edit['alamat']) ?>" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">No Telp</label>
+          <input type="text" class="form-control" name="no_telp" value="<?= htmlspecialchars($data_edit['no_telp']) ?>" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">SPP</label>
+          <select class="form-select" name="id_spp" required>
+            <?php 
+            $spp = mysqli_query($koneksi, "SELECT id_spp, tahun, nominal FROM spp ORDER BY tahun DESC"); 
+            while($s = mysqli_fetch_assoc($spp)): ?>
+              <option value="<?= $s['id_spp'] ?>" <?= ($data_edit['id_spp']==$s['id_spp'])?'selected':''; ?>><?= htmlspecialchars($s['tahun']).' - '.htmlspecialchars($s['nominal']) ?></option>
+            <?php endwhile; ?>
+          </select>
+        </div>
+      </div>
+      <div class="mt-3">
+        <button type="submit" name="update" class="btn btn-primary">Update</button>
+        <a class="btn btn-outline-secondary" href="/spp_app/index.php?page=siswa">Batal</a>
+      </div>
+    </form>
+  </div>
+</div>
+<?php } else { ?>
 <div class="card shadow-sm mb-3" id="formTambahSiswa">
   <div class="card-body">
     <form method="post">
@@ -121,6 +213,7 @@ if(isset($_POST['tambah'])) {
     </form>
   </div>
 </div>
+<?php } ?>
 
 <!-- Tabel data siswa -->
 <div class="card shadow-sm">
@@ -146,6 +239,9 @@ if(isset($_POST['tambah'])) {
           <td><?= htmlspecialchars($d['no_telp']) ?></td>
           <td><?= htmlspecialchars($d['id_spp']) ?></td>
           <td>
+            <a class="btn btn-sm btn-outline-primary" href="/spp_app/index.php?page=siswa&edit=<?= urlencode($d['nisn']) ?>">
+              <i class="bi bi-pencil"></i>
+            </a>
             <a class="btn btn-sm btn-outline-danger" 
                href="/spp_app/index.php?page=siswa&hapus=<?= urlencode($d['nisn']) ?>" 
                onclick="return confirm('Hapus data ini?')">

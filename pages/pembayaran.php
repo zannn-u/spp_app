@@ -14,9 +14,10 @@ include __DIR__."/../config/koneksi.php";
 // ======================
 if (isset($_GET['hapus'])) {
     $id = intval($_GET['hapus']);
-    // Hapus data pembayaran berdasarkan ID
-    mysqli_query($koneksi, "DELETE FROM pembayaran WHERE id_pembayaran='$id'");
-    // Redirect dengan pesan sukses
+    $stmt = mysqli_prepare($koneksi, "DELETE FROM pembayaran WHERE id_pembayaran=?");
+    mysqli_stmt_bind_param($stmt, 'i', $id);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
     header("Location: /spp_app/index.php?page=pembayaran&msg=hapus");
     exit;
 }
@@ -27,8 +28,12 @@ if (isset($_GET['hapus'])) {
 // ======================
 if (isset($_GET['edit'])) {
     $id = intval($_GET['edit']);
-    $edit = mysqli_query($koneksi, "SELECT * FROM pembayaran WHERE id_pembayaran='$id'");
-    $data_edit = mysqli_fetch_assoc($edit);
+    $stmt = mysqli_prepare($koneksi, "SELECT id_pembayaran, id_petugas, nisn, tgl_bayar, bulan_dibayar, tahun_dibayar, id_spp, jumlah_bayar FROM pembayaran WHERE id_pembayaran=?");
+    mysqli_stmt_bind_param($stmt, 'i', $id);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $data_edit = mysqli_fetch_assoc($res);
+    mysqli_stmt_close($stmt);
 }
 
 
@@ -37,39 +42,54 @@ if (isset($_GET['edit'])) {
 // ======================
 if (isset($_POST['tambah'])) {
     $id_petugas = (int)$_POST['id_petugas'];
-    $nisn       = mysqli_real_escape_string($koneksi, $_POST['nisn']);
-    $tgl_bayar  = mysqli_real_escape_string($koneksi, $_POST['tgl_bayar']);
-    $bulan      = mysqli_real_escape_string($koneksi, $_POST['bulan']);
-    $tahun      = mysqli_real_escape_string($koneksi, $_POST['tahun']);
+    $nisn       = $_POST['nisn'];
+    $tgl_bayar  = $_POST['tgl_bayar'];
+    $bulan      = $_POST['bulan'];
+    $tahun      = $_POST['tahun'];
     $id_spp     = (int)$_POST['id_spp'];
     $jumlah     = (int)$_POST['jumlah'];
 
-    // Validasi foreign key (pastikan data relasi ada)
-    $petugasExists = mysqli_fetch_row(mysqli_query($koneksi, "SELECT COUNT(1) FROM petugas WHERE id_petugas=$id_petugas"))[0] ?? 0;
-    $siswaExists   = mysqli_fetch_row(mysqli_query($koneksi, "SELECT COUNT(1) FROM siswa WHERE nisn='".mysqli_real_escape_string($koneksi,$nisn)."'"))[0] ?? 0;
-    $sppExists     = mysqli_fetch_row(mysqli_query($koneksi, "SELECT COUNT(1) FROM spp WHERE id_spp=$id_spp"))[0] ?? 0;
+    // Transaksi begin
+    mysqli_begin_transaction($koneksi);
+    try {
+        // Validasi FK via prepared count
+        $exists = function(string $sql, string $types, ...$params) use ($koneksi) {
+            $st = mysqli_prepare($koneksi, $sql);
+            mysqli_stmt_bind_param($st, $types, ...$params);
+            mysqli_stmt_execute($st);
+            $rs = mysqli_stmt_get_result($st);
+            $row = mysqli_fetch_row($rs);
+            mysqli_stmt_close($st);
+            return (int)($row[0] ?? 0);
+        };
 
-    if (!$petugasExists) {
-        header("Location: /spp_app/index.php?page=pembayaran&error=".rawurlencode('Petugas tidak ditemukan'));
-        exit;
-    }
-    if (!$siswaExists) {
-        header("Location: /spp_app/index.php?page=pembayaran&error=".rawurlencode('Siswa (NISN) tidak ditemukan'));
-        exit;
-    }
-    if (!$sppExists) {
-        header("Location: /spp_app/index.php?page=pembayaran&error=".rawurlencode('SPP tidak ditemukan'));
-        exit;
-    }
+        if ($exists("SELECT COUNT(1) FROM petugas WHERE id_petugas=?", 'i', $id_petugas) === 0) {
+            throw new Exception('Petugas tidak ditemukan');
+        }
+        if ($exists("SELECT COUNT(1) FROM siswa WHERE nisn=?", 's', $nisn) === 0) {
+            throw new Exception('Siswa (NISN) tidak ditemukan');
+        }
+        if ($exists("SELECT COUNT(1) FROM spp WHERE id_spp=?", 'i', $id_spp) === 0) {
+            throw new Exception('SPP tidak ditemukan');
+        }
 
-    // Simpan data pembayaran
-    $sql = "INSERT INTO pembayaran (id_petugas, nisn, tgl_bayar, bulan_dibayar, tahun_dibayar, id_spp, jumlah_bayar) 
-            VALUES ('$id_petugas','$nisn','$tgl_bayar','$bulan','$tahun','$id_spp','$jumlah')";
-    if (mysqli_query($koneksi, $sql)) {
+        // Cegah duplikasi pembayaran bulan-tahun untuk NISN yang sama
+        if ($exists("SELECT COUNT(1) FROM pembayaran WHERE nisn=? AND bulan_dibayar=? AND tahun_dibayar=?", 'sss', $nisn, $bulan, $tahun) > 0) {
+            throw new Exception('Pembayaran bulan-tahun tersebut sudah ada untuk NISN ini');
+        }
+
+        // Insert pembayaran (prepared)
+        $stmt = mysqli_prepare($koneksi, "INSERT INTO pembayaran (id_petugas, nisn, tgl_bayar, bulan_dibayar, tahun_dibayar, id_spp, jumlah_bayar) VALUES (?,?,?,?,?,?,?)");
+        mysqli_stmt_bind_param($stmt, 'issssii', $id_petugas, $nisn, $tgl_bayar, $bulan, $tahun, $id_spp, $jumlah);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        mysqli_commit($koneksi);
         header("Location: /spp_app/index.php?page=pembayaran&msg=tambah");
         exit;
-    } else {
-        $err = rawurlencode(mysqli_error($koneksi));
+    } catch (Throwable $e) {
+        mysqli_rollback($koneksi);
+        $err = rawurlencode($e->getMessage());
         header("Location: /spp_app/index.php?page=pembayaran&error=$err");
         exit;
     }
@@ -80,24 +100,30 @@ if (isset($_POST['tambah'])) {
 // PROSES UPDATE
 // ======================
 if (isset($_POST['update'])) {
-    $id        = $_POST['id_pembayaran'];
-    $id_petugas= $_POST['id_petugas'];
+    $id        = (int)$_POST['id_pembayaran'];
+    $id_petugas= (int)$_POST['id_petugas'];
     $nisn      = $_POST['nisn'];
     $tgl_bayar = $_POST['tgl_bayar'];
     $bulan     = $_POST['bulan'];
     $tahun     = $_POST['tahun'];
-    $id_spp    = $_POST['id_spp'];
-    $jumlah    = $_POST['jumlah'];
+    $id_spp    = (int)$_POST['id_spp'];
+    $jumlah    = (int)$_POST['jumlah'];
 
-    // Update data pembayaran berdasarkan ID
-    $sql = "UPDATE pembayaran 
-            SET id_petugas='$id_petugas', nisn='$nisn', tgl_bayar='$tgl_bayar', 
-                bulan_dibayar='$bulan', tahun_dibayar='$tahun', id_spp='$id_spp', jumlah_bayar='$jumlah' 
-            WHERE id_pembayaran='$id'";
-    mysqli_query($koneksi, $sql);
-
-    header("Location: /spp_app/index.php?page=pembayaran&msg=update");
-    exit;
+    mysqli_begin_transaction($koneksi);
+    try {
+        $stmt = mysqli_prepare($koneksi, "UPDATE pembayaran SET id_petugas=?, nisn=?, tgl_bayar=?, bulan_dibayar=?, tahun_dibayar=?, id_spp=?, jumlah_bayar=? WHERE id_pembayaran=?");
+        mysqli_stmt_bind_param($stmt, 'issssiii', $id_petugas, $nisn, $tgl_bayar, $bulan, $tahun, $id_spp, $jumlah, $id);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+        mysqli_commit($koneksi);
+        header("Location: /spp_app/index.php?page=pembayaran&msg=update");
+        exit;
+    } catch (Throwable $e) {
+        mysqli_rollback($koneksi);
+        $err = rawurlencode($e->getMessage());
+        header("Location: /spp_app/index.php?page=pembayaran&error=$err");
+        exit;
+    }
 }
 ?>
 
