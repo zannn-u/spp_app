@@ -38,7 +38,7 @@ if (isset($_GET['edit'])) {
 
 
 // ======================
-// PROSES CREATE (TAMBAH)
+// PROSES CREATE (TAMBAH) - Menggunakan Stored Procedure
 // ======================
 if (isset($_POST['tambah'])) {
     $id_petugas = (int)$_POST['id_petugas'];
@@ -49,50 +49,21 @@ if (isset($_POST['tambah'])) {
     $id_spp     = (int)$_POST['id_spp'];
     $jumlah     = (int)$_POST['jumlah'];
 
-    // Transaksi begin
-    mysqli_begin_transaction($koneksi);
-    try {
-        // Validasi FK via prepared count
-        $exists = function(string $sql, string $types, ...$params) use ($koneksi) {
-            $st = mysqli_prepare($koneksi, $sql);
-            mysqli_stmt_bind_param($st, $types, ...$params);
-            mysqli_stmt_execute($st);
-            $rs = mysqli_stmt_get_result($st);
-            $row = mysqli_fetch_row($rs);
-            mysqli_stmt_close($st);
-            return (int)($row[0] ?? 0);
-        };
+    $stmt = mysqli_prepare($koneksi, "CALL tambah_pembayaran(?, ?, ?, ?, ?, ?, ?, @pesan_hasil)");
+    mysqli_stmt_bind_param($stmt, 'issssii', $id_petugas, $nisn, $tgl_bayar, $bulan, $tahun, $id_spp, $jumlah);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
 
-        if ($exists("SELECT COUNT(1) FROM petugas WHERE id_petugas=?", 'i', $id_petugas) === 0) {
-            throw new Exception('Petugas tidak ditemukan');
-        }
-        if ($exists("SELECT COUNT(1) FROM siswa WHERE nisn=?", 's', $nisn) === 0) {
-            throw new Exception('Siswa (NISN) tidak ditemukan');
-        }
-        if ($exists("SELECT COUNT(1) FROM spp WHERE id_spp=?", 'i', $id_spp) === 0) {
-            throw new Exception('SPP tidak ditemukan');
-        }
-
-        // Cegah duplikasi pembayaran bulan-tahun untuk NISN yang sama
-        if ($exists("SELECT COUNT(1) FROM pembayaran WHERE nisn=? AND bulan_dibayar=? AND tahun_dibayar=?", 'sss', $nisn, $bulan, $tahun) > 0) {
-            throw new Exception('Pembayaran bulan-tahun tersebut sudah ada untuk NISN ini');
-        }
-
-        // Insert pembayaran (prepared)
-        $stmt = mysqli_prepare($koneksi, "INSERT INTO pembayaran (id_petugas, nisn, tgl_bayar, bulan_dibayar, tahun_dibayar, id_spp, jumlah_bayar) VALUES (?,?,?,?,?,?,?)");
-        mysqli_stmt_bind_param($stmt, 'issssii', $id_petugas, $nisn, $tgl_bayar, $bulan, $tahun, $id_spp, $jumlah);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
-
-        mysqli_commit($koneksi);
+    $result = mysqli_query($koneksi, "SELECT @pesan_hasil AS pesan");
+    $pesan = mysqli_fetch_assoc($result)['pesan'];
+    
+    if (strpos($pesan, 'Success') !== false) {
         header("Location: /spp_app/index.php?page=pembayaran&msg=tambah");
-        exit;
-    } catch (Throwable $e) {
-        mysqli_rollback($koneksi);
-        $err = rawurlencode($e->getMessage());
+    } else {
+        $err = rawurlencode($pesan);
         header("Location: /spp_app/index.php?page=pembayaran&error=$err");
-        exit;
     }
+    exit;
 }
 
 
@@ -109,31 +80,19 @@ if (isset($_POST['update'])) {
     $id_spp    = (int)$_POST['id_spp'];
     $jumlah    = (int)$_POST['jumlah'];
 
-    mysqli_begin_transaction($koneksi);
-    try {
-        $stmt = mysqli_prepare($koneksi, "UPDATE pembayaran SET id_petugas=?, nisn=?, tgl_bayar=?, bulan_dibayar=?, tahun_dibayar=?, id_spp=?, jumlah_bayar=? WHERE id_pembayaran=?");
-        mysqli_stmt_bind_param($stmt, 'issssiii', $id_petugas, $nisn, $tgl_bayar, $bulan, $tahun, $id_spp, $jumlah, $id);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
-        mysqli_commit($koneksi);
-        header("Location: /spp_app/index.php?page=pembayaran&msg=update");
-        exit;
-    } catch (Throwable $e) {
-        mysqli_rollback($koneksi);
-        $err = rawurlencode($e->getMessage());
-        header("Location: /spp_app/index.php?page=pembayaran&error=$err");
-        exit;
-    }
+    // Update dilakukan seperti biasa, triggers akan menangani validasi setelahnya
+    $stmt = mysqli_prepare($koneksi, "UPDATE pembayaran SET id_petugas=?, nisn=?, tgl_bayar=?, bulan_dibayar=?, tahun_dibayar=?, id_spp=?, jumlah_bayar=? WHERE id_pembayaran=?");
+    mysqli_stmt_bind_param($stmt, 'issssiii', $id_petugas, $nisn, $tgl_bayar, $bulan, $tahun, $id_spp, $jumlah, $id);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+    header("Location: /spp_app/index.php?page=pembayaran&msg=update");
+    exit;
 }
 ?>
 
-<!-- ======================
- HEADER HALAMAN
-====================== -->
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4 class="mb-0">Data Pembayaran</h4>
   <?php if (!isset($_GET['edit'])): ?>
-  <!-- Tombol tambah hanya tampil saat bukan mode edit -->
   <a href="#formTambahPembayaran" class="btn btn-primary btn-sm" 
      onclick="document.getElementById('formTambahPembayaran').scrollIntoView();return false;">
      <i class="bi bi-plus-lg me-1"></i>Tambah Pembayaran
@@ -141,25 +100,26 @@ if (isset($_POST['update'])) {
   <?php endif; ?>
 </div>
 
-<!-- Notifikasi Pesan -->
 <?php if(isset($_GET['msg']) && $_GET['msg']==='hapus'): ?>
 <div class="alert alert-success py-2">Data terhapus.</div>
+<?php endif; ?>
+<?php if(isset($_GET['msg']) && $_GET['msg']==='tambah'): ?>
+<div class="alert alert-success py-2">Pembayaran berhasil ditambahkan.</div>
+<?php endif; ?>
+<?php if(isset($_GET['msg']) && $_GET['msg']==='update'): ?>
+<div class="alert alert-success py-2">Data berhasil diupdate.</div>
 <?php endif; ?>
 <?php if(isset($_GET['error'])): ?>
 <div class="alert alert-danger py-2">Gagal menambah: <?= htmlspecialchars($_GET['error']) ?></div>
 <?php endif; ?>
 
 
-<!-- ======================
- FORM EDIT
-====================== -->
 <?php if (isset($_GET['edit'])) { ?>
   <div class="card shadow-sm mb-3">
     <div class="card-body">
       <form method="post">
         <input type="hidden" name="id_pembayaran" value="<?php echo $data_edit['id_pembayaran']; ?>">
         <div class="row g-2">
-          <!-- Input untuk update data -->
           <div class="col-md-3"><label class="form-label">ID Petugas</label><input type="number" class="form-control" name="id_petugas" value="<?php echo $data_edit['id_petugas']; ?>" required></div>
           <div class="col-md-3"><label class="form-label">NISN</label><input type="text" class="form-control" name="nisn" value="<?php echo $data_edit['nisn']; ?>" required></div>
           <div class="col-md-3"><label class="form-label">Tanggal Bayar</label><input type="date" class="form-control" name="tgl_bayar" value="<?php echo $data_edit['tgl_bayar']; ?>" required></div>
@@ -176,15 +136,11 @@ if (isset($_POST['update'])) {
     </div>
   </div>
 
-<!-- ======================
- FORM TAMBAH
-====================== -->
 <?php } else { ?>
   <div class="card shadow-sm mb-3" id="formTambahPembayaran">
     <div class="card-body">
       <form method="post">
         <div class="row g-2">
-          <!-- Pilih Petugas -->
           <div class="col-md-3">
             <label class="form-label">Petugas</label>
             <select class="form-select" name="id_petugas" required>
@@ -196,7 +152,6 @@ if (isset($_POST['update'])) {
               <?php endwhile; ?>
             </select>
           </div>
-          <!-- Pilih Siswa (NISN) -->
           <div class="col-md-3">
             <label class="form-label">NISN</label>
             <select class="form-select" name="nisn" required>
@@ -208,11 +163,9 @@ if (isset($_POST['update'])) {
               <?php endwhile; ?>
             </select>
           </div>
-          <!-- Input lainnya -->
           <div class="col-md-3"><label class="form-label">Tanggal Bayar</label><input type="date" class="form-control" name="tgl_bayar" required></div>
           <div class="col-md-3"><label class="form-label">Bulan Dibayar</label><input type="text" class="form-control" name="bulan" required></div>
           <div class="col-md-3"><label class="form-label">Tahun Dibayar</label><input type="text" class="form-control" name="tahun" required></div>
-          <!-- Pilih SPP -->
           <div class="col-md-3">
             <label class="form-label">SPP</label>
             <select class="form-select" name="id_spp" required>
@@ -235,9 +188,6 @@ if (isset($_POST['update'])) {
 <?php } ?>
 
 
-<!-- ======================
- TABEL DATA PEMBAYARAN
-====================== -->
 <div class="card shadow-sm">
   <div class="card-body">
     <table class="table table-striped datatable">
@@ -270,7 +220,6 @@ if (isset($_POST['update'])) {
           <td><?= htmlspecialchars($d['id_spp']) ?></td>
           <td><?= htmlspecialchars($d['jumlah_bayar']) ?></td>
           <td>
-            <!-- Tombol Edit dan Hapus -->
             <a class="btn btn-sm btn-outline-primary" href="/spp_app/index.php?page=pembayaran&edit=<?= $d['id_pembayaran'] ?>"><i class="bi bi-pencil"></i></a>
             <a class="btn btn-sm btn-outline-danger" href="/spp_app/index.php?page=pembayaran&hapus=<?= $d['id_pembayaran'] ?>" onclick="return confirm('Hapus data ini?')"><i class="bi bi-trash"></i></a>
           </td>
